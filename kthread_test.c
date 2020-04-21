@@ -13,14 +13,35 @@ MODULE_VERSION("0.1");
 
 static struct task_struct *my_task = NULL;
 
-static int my_kthread(void *data) {
+static int kthread_in_kthread(void *data) {
     char *str = (char *)data;
 
+    pr_info("kthread_in_kthread data: %s\n", str);
+    pr_info("kthread_in_kthread smp_processor_id %d\n", smp_processor_id());
+    while(!kthread_should_stop()) {
+        msleep(5000);
+        pr_info("kthread_in_kthread: alive. smp_processor_id %d\n", smp_processor_id());
+        pr_info("=========================================\n");
+    }
+    pr_info("kthread_in_kthread: stop\n");
+    return 0;
+}
+
+static int my_kthread(void *data) {
+    char *str = (char *)data;
+    struct task_struct *worker;
+    int flag = 0;
     pr_info("my kthread data: %s\n", str);
     pr_info("my kthread smp_processor_id %d\n", smp_processor_id());
     while(!kthread_should_stop()) {
+        if(!flag) {
+            worker = kthread_run(kthread_in_kthread, "hello kthrea_in_kthread", "demo-child");
+            pr_info("my kthread: create kthread_in_kthread. smp_processor_id %d\n", smp_processor_id());
+            pr_info("=========================================\n");
+            flag = 1;
+        }
         msleep(5000);
-        pr_info("my kthread: alive. smp_processor_id %d\n", smp_processor_id());
+        pr_info("my_kthread: alive. smp_processor_id %d\n", smp_processor_id());
         pr_info("=========================================\n");
     }
     pr_info("my kthread: stop\n");
